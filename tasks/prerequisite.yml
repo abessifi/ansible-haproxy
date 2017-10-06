@@ -1,0 +1,9 @@
+---
+
+- name: Ensure required packages are installed
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - rsyslog
+    - logrotate

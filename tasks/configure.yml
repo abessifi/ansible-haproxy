@@ -1,0 +1,62 @@
+---
+
+#
+# HAProxy configuration
+#
+
+- name: Get HAProxy version
+  shell: "haproxy -v | awk 'NR==1 {print $3}'"
+  register: haproxy_version_result
+  changed_when: false
+  check_mode: no
+
+- name: Set HAProxy version
+  set_fact:
+    haproxy_version: "{{ '1.5' if haproxy_version_result.stdout | regex_search('^1.5.') else '1.4' }}"
+
+- name: Create HAProxy errorfiles and logging directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/haproxy/errors/
+    - /var/log/haproxy/
+
+- name: Extract HTML error files
+  unarchive:
+    src: html_error_pages.tar.gz
+    dest: /etc/haproxy/errors/
+    owner: root
+    group: root
+
+- name: Disable HAProxy messages to be logged in '/var/log/messages'
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^\*\.info\;mail\.none\;authpriv\.none\;cron\.none.*\/var\/log\/messages'
+    line: '*.info;mail.none;authpriv.none;cron.none;local2.none    /var/log/messages'
+  notify: restart rsyslog
+
+- name: Enable HAProxy log rotation
+  template:
+    src: haproxy-logrotate.j2
+    dest: /etc/logrotate.d/haproxy
+    mode: 0644
+
+- name: Copy HAProxy configuration
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: 0644
+    validate: haproxy -f %s -c -q
+  notify: restart haproxy
+
+#
+# Keepalived configuration
+#
+
+- name: Ensure keepalived conf is set
+  template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  notify: restart keepalived
+  when: haproxy_enable_ha|bool

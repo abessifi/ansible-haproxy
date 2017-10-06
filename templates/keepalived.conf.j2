@@ -1,0 +1,36 @@
+{{ ansible_managed | comment }}
+
+global_defs {
+    notification_email {
+      ahmed.bessifi@edelia.fr
+    }
+    notification_email_from ahmed.bessifi@edelia.fr
+    smtp_server localhost
+    smtp_connect_timeout 30
+    router_id {{ ansible_fqdn }}    # A string identifying the machine
+}
+
+vrrp_script chk_haproxy {
+    script "/usr/bin/killall -0 haproxy"   # verify the process existence
+    interval 2                    # check every 2 seconds
+}
+
+vrrp_instance  {{ haproxy_keepalived_vrrp_name }} {
+    # Interface to monitor.
+    interface {{ haproxy_keepalived_bind_interface }}
+    # Could be ("MASTER"|"BACKUP"|"FAULT").
+    state {{ haproxy_keepalived_instance_state|upper }}
+    # Arbitrary router ID used to differentiate multiple instances of vrrpd unning on the same NIC.
+    virtual_router_id 51
+    # Priority is used to decide which member is elected. The decision is simply based on which server has the highest number.
+    priority {{ haproxy_keepalived_instance_priority }}
+    # Seconds after startup until preemption.
+    preempt_delay 300
+    # The virtual IP address
+    virtual_ipaddress {
+        {{ haproxy_keepalived_vip }} dev {{ haproxy_keepalived_bind_interface }}
+    }
+    track_script {
+        chk_haproxy
+    }
+}

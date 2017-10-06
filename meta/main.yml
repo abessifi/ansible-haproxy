@@ -1,0 +1,19 @@
+---
+
+dependencies: []
+
+galaxy_info:
+  author: abessifi
+  description: HAProxy installation and configuration with Keepalived support.
+  company: "EDELIA"
+  license: "license MIT"
+  min_ansible_version: 2.3
+  platforms:
+  - name: EL
+    versions:
+      - 6
+      - 7
+  galaxy_tags:
+    - web
+    - networking
+    - reverse-proxy

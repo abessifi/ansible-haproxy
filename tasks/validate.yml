@@ -1,0 +1,24 @@
+---
+
+- block:
+    - name: Check rsyslog is installed
+      shell: "command -v rsyslogd > /dev/null"
+      changed_when: false
+    - name: Check logrorate is installed
+      shell: "command -v logrotate > /dev/null"
+      changed_when: false
+  rescue:
+    - fail: msg="Please make sure Rsyslog and Logrotate are installed !"
+  run_once: true
+
+- name: Check non empty login/pass if stats enabled
+  fail:
+    msg: "HAProxy stats must be protected by login/pass credentials"
+  when: haproxy_enable_stats | bool and (( haproxy_stats_username|trim == "" ) or ( haproxy_stats_password|trim == "" ))
+  run_once: true
+
+- name: Make sur HAProxy VIP parameter is set when HA mode is enabled
+  fail:
+    msg: "HAProxy VIP address is required !"
+  when: haproxy_enable_ha|bool and haproxy_keepalived_vip|trim == ""
+  run_once: true

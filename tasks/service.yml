@@ -1,0 +1,14 @@
+---
+
+- name: Ensure HAProxy is started and enabled on boot
+  service:
+    name: haproxy
+    state: started
+    enabled: yes
+
+- name: Ensure Keepalived is started and enabled on boot
+  service:
+    name: keepalived
+    state: started
+    enabled: yes
+  when: haproxy_enable_ha|bool

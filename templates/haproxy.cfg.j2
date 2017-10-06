@@ -1,0 +1,73 @@
+{{ ansible_managed | comment }}
+
+global
+  log /dev/log  local2 info alert   # For access logs
+  log /dev/log  local2 notice alert # For backend, loadbalancer logs
+{% if haproxy_socket != '' %}
+  stats socket {{ haproxy_socket }} level admin
+{% endif %}
+{% if haproxy_chroot != '' %}
+  chroot {{ haproxy_chroot }}
+{% endif %}
+  user {{ haproxy_user }}
+  group {{ haproxy_group }}
+  daemon
+{% for global_var in haproxy_extra_global_vars %}
+  {{ global_var }}
+{% endfor %}
+
+defaults
+  log global
+  mode  http
+  option  httplog
+  option  dontlognull
+{% if haproxy_version == '1.4' %}
+  contimeout 5000
+  clitimeout 50000
+  srvtimeout 50000
+{% else %}
+  timeout connect 5000
+  timeout client 50000
+  timeout server 50000
+  maxconn 3000
+{% endif %}
+  # Custom http error files
+  errorfile 400 /etc/haproxy/errors/HTTP400.html
+  # errorfile 401 /etc/haproxy/errors/HTTP401.html
+  errorfile 403 /etc/haproxy/errors/HTTP403.html
+  # errorfile 404 /etc/haproxy/errors/HTTP404.html
+  errorfile 500 /etc/haproxy/errors/HTTP500.html
+  # errorfile 501 /etc/haproxy/errors/HTTP501.html
+  errorfile 502 /etc/haproxy/errors/HTTP502.html
+  errorfile 503 /etc/haproxy/errors/HTTP503.html
+  # errorfile 520 /etc/haproxy/errors/HTTP520.html
+  # errorfile 521 /etc/haproxy/errors/HTTP521.html
+  # errorfile 533 /etc/haproxy/errors/HTTP533.html
+
+{% if haproxy_enable_stats %}
+listen stats :1936
+  mode http
+  monitor-uri /healthz
+  stats enable
+  stats hide-version
+  stats realm Haproxy\ Statistics
+  stats uri /
+  stats auth {{ haproxy_stats_username }}:{{ haproxy_stats_password }}
+{% endif %}
+
+frontend {{ haproxy_frontend_name }}
+  bind {{ haproxy_frontend_bind_address }}:{{ haproxy_frontend_port }}
+  mode {{ haproxy_frontend_mode }}
+  default_backend {{ haproxy_backend_name }}
+
+backend {{ haproxy_backend_name }}
+  mode {{ haproxy_backend_mode }}
+  balance {{ haproxy_backend_balance_method }}
+  option forwardfor
+{% if haproxy_backend_httpchk != '' %}
+  option httpchk {{ haproxy_backend_httpchk }}
+{% endif %}
+  cookie SERVERID insert indirect
+{% for backend in haproxy_backend_servers %}
+  server {{ backend.name }} {{ backend.address }} cookie {{ backend.name }} check
+{% endfor %}

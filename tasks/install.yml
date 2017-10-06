@@ -1,0 +1,13 @@
+---
+
+- name: Ensure HAProxy is installed
+  yum:
+    name: haproxy
+    state: installed
+  when: ansible_os_family == 'RedHat'
+
+- name: Ensure Keepalived is installed
+  yum:
+    name: keepalived
+    state: installed
+  when: haproxy_enable_ha|bool
