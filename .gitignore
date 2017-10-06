@@ -1,0 +1,4 @@
+*.retry
+inventory.ini
+host_vars/
+group_vars/
