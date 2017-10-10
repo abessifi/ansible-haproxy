@@ -36,6 +36,13 @@
     line: '*.info;mail.none;authpriv.none;cron.none;local2.none    /var/log/messages'
   notify: restart rsyslog
 
+- name: Add rsyslog config for HAProxy
+  template:
+    src: haproxy-rsyslog.j2
+    dest: /etc/rsyslog.d/haproxy.conf
+    mode: 0644
+  notify: restart rsyslog
+
 - name: Enable HAProxy log rotation
   template:
     src: haproxy-logrotate.j2
