@@ -1,35 +1,33 @@
 ---
 
-# Global settings
+# HAProxy Global settings
 haproxy_socket: /var/lib/haproxy/stats
 haproxy_chroot: /var/lib/haproxy
 haproxy_user: haproxy
 haproxy_group: haproxy
 haproxy_extra_global_vars: []
 
-# Stats configuration
+# HAProxy Stats configuration
 haproxy_enable_stats: false
+haproxy_stats_port: 1936
 haproxy_stats_username: ""
 haproxy_stats_password: ""
 
-# Frontend settings
-haproxy_frontend_name: 'ha-frontend'
-haproxy_frontend_bind_address: '*'
-haproxy_frontend_port: 80
-haproxy_frontend_mode: 'http'
+# HAProxy Frontend settings
+haproxy_frontends:
+- name: default-fe
+  binds:
+  - "*:80"
+  default_backend: default-be
 
-# Backend settings
-haproxy_backend_name: 'ha-backend'
-haproxy_backend_mode: 'http'
-haproxy_backend_balance_method: 'roundrobin'
-haproxy_backend_httpchk: 'HEAD / HTTP/1.1\r\nHost:localhost'
-
-# List of backend servers
-haproxy_backend_servers: []
-  # - name: app1
-  #   address: 192.168.0.1:80
-  # - name: app2
-  #   address: 192.168.0.2:80
+# HAProxy Backend settings
+haproxy_backends:
+- name: default-be
+  balance: roundrobin
+  servers:
+  - name: rp
+    address: "127.0.0.1:{{ haproxy_stats_port }}"
+    opts: check
 
 # Keepalived configuration
 haproxy_enable_ha: false

@@ -1,5 +1,9 @@
 {{ ansible_managed | comment }}
 
+#
+# Global configuration
+#
+
 global
   log /dev/log  local2 info alert   # For access logs
   log /dev/log  local2 notice alert # For backend, loadbalancer logs
@@ -15,6 +19,10 @@ global
 {% for global_var in haproxy_extra_global_vars %}
   {{ global_var }}
 {% endfor %}
+
+#
+# Default configuration
+#
 
 defaults
   log global
@@ -44,8 +52,12 @@ defaults
   # errorfile 521 /etc/haproxy/errors/HTTP521.html
   # errorfile 533 /etc/haproxy/errors/HTTP533.html
 
+#
+# Stats configuration
+#
+
 {% if haproxy_enable_stats %}
-listen stats :1936
+listen stats :{{ haproxy_stats_port }}
   mode http
   monitor-uri /healthz
   stats enable
@@ -55,19 +67,43 @@ listen stats :1936
   stats auth {{ haproxy_stats_username }}:{{ haproxy_stats_password }}
 {% endif %}
 
-frontend {{ haproxy_frontend_name }}
-  bind {{ haproxy_frontend_bind_address }}:{{ haproxy_frontend_port }}
-  mode {{ haproxy_frontend_mode }}
-  default_backend {{ haproxy_backend_name }}
+#
+# Frontends configuration
+#
 
-backend {{ haproxy_backend_name }}
-  mode {{ haproxy_backend_mode }}
-  balance {{ haproxy_backend_balance_method }}
-  option forwardfor
-{% if haproxy_backend_httpchk != '' %}
-  option httpchk {{ haproxy_backend_httpchk }}
+{% for frontend in haproxy_frontends %}
+frontend  {{ frontend.name }}
+{% for bind in frontend.binds %}
+    bind {{ bind }}
+{% endfor %}
+{% if 'mode' in frontend %}
+    mode {{ frontend.mode }}
 {% endif %}
-  cookie SERVERID insert indirect
-{% for backend in haproxy_backend_servers %}
-  server {{ backend.name }} {{ backend.address }} cookie {{ backend.name }} check
+{% if 'options' in frontend %}
+{% for option in frontend.options %}
+    option {{ option }}
+{% endfor %}
+{% endif %}
+{% if 'redirects' in frontend %}
+{% for redirect in frontend.redirects %}
+    redirect {{ redirect }}
+{% endfor %}
+{% endif %}
+    default_backend {{ frontend.default_backend }}
+{% endfor %}
+
+{% for backend in haproxy_backends %}
+backend {{ backend.name }}
+{% if 'mode' in backend %}
+    mode {{ backend.mode }}
+{% endif %}
+    balance {{ backend.balance }}
+{% if 'options' in backend %}
+{% for option in backend.options %}
+    option {{ option }}
+{% endfor %}
+{% endif %}
+{% for server in backend.servers %}
+    server      {{ server.name }} {{ server.address }} {{ server.opts }}
+{% endfor %}
 {% endfor %}
