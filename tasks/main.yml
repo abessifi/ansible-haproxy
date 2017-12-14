@@ -1,8 +1,8 @@
 ---
 
-- include: prerequisite.yml
-
 - include: validate.yml
+
+- include: prerequisite.yml
 
 - include: install.yml
 
